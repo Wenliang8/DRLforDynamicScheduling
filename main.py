@@ -42,13 +42,7 @@ parser.add_argument('-ns', '--no_stream', default=False, action='store_false', h
 methods = dict(inspect.getmembers(SequencingMethod, predicate=inspect.ismethod))
 parser.add_argument('-sqc', '--sqc_method', default='GurobiOptimizer', help='Sequencing rule or scheduler')
 
-# threading
-parser.add_argument('-multi_thread', default=False , action='store_true', help='Use this flag to create multiple threads/environments')
-parser.add_argument('-thread_no', default= 4, type=int, help='Number of threads')
-
-
 args = parser.parse_args()
-
 
 if __name__ == '__main__':
     Simulator.run(
