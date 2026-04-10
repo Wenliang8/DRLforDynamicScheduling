@@ -20,20 +20,20 @@ parser.add_argument('-seed', default=0, action='store', type=int, help='Random s
 parser.add_argument('-span', default=100, action='store', type=int, help='Length of simulation')
 parser.add_argument('-utl', '--E_utliz', default=0.6, action='store', type=float, help='Expected system utilization rate')
 
-# job and processing time settings
+# job and processing time parameters
 parser.add_argument('-dt', '--due_tightness', default=2, action='store', type=float, help='Due time tightness')
 parser.add_argument('-pt_r','--pt_range', default=[1,10], action='store', type=List[int], help='Range of processing time')
 parser.add_argument('-pt_v', '--processing_time_variability', default=False, action='store_true', help='Flag to activate non-deterministic processing time (boolean)')
 parser.add_argument('-pt_cv', default=0.1, action='store', type=float, help='Coefficiency of variance of processing time')
 
-# machine breakdown settings
+# machine breakdown parameters
 parser.add_argument('-mbkd', '--machine_breakdown', default=True, action='store_false', help='Simulate machine breakdown events? (boolean)')
 parser.add_argument('-mtbf', '--MTBF', default=50, help='Mean time between failure')
 parser.add_argument('-rnd_mtbf', '--random_MTBF', default=True, action='store_true', help='Use random MTBF')
 parser.add_argument('-mttr', '--MTTR', default=10, help='Mean time to repair')
 parser.add_argument('-rnd_mttr', '--random_MTTR', default=False, action='store_true', help='Use random MTTR')
 
-# logging and plotting settings
+# logging and plotting parameters
 parser.add_argument('-draw', '--draw_gantt', default=5, action='store', type=int, help='Any value greater than 0 would plot the gantt chart, strictly no-show for >200 simulation')
 parser.add_argument('-save_gantt', default=True, action='store_false', help='Save the gantt chart figure to log?')
 parser.add_argument('-ns', '--no_stream', default=False, action='store_false', help='Flag to disable stream logger (print to console)')
