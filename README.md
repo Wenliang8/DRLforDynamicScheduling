@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository stores the source code for the research project entitled "Multi-agent Imitational, Chronological, and Asynchronous Reinforcement Learning Framework for Production Scheduling." Includes a discrete event simulator, centralized production scheudler (mathematical optimization and heuristics), and Deep Reinforcement Learning agent.
+This repository stores the source code for the research project titled "Multi-agent Imitational, Chronological, and Asynchronous Reinforcement Learning Framework for Production Scheduling." Project includes a discrete event simulator, centralized production scheudler (mathematical optimization and heuristics), and Deep Reinforcement Learning agent.
 
 Recommended Python version >= 3.10, please note that Gurobi license is required to enable mathematical optimization-based scheduling (default), other wise fallback to ORTools, or heuristics.
 
