@@ -1,7 +1,7 @@
 """
 Sequencing rules and place holders for mathematical-optimization-based schedulers
 """
-
+from src.scheduler.drl_agent import DRLAgent
 import inspect
 import numpy as np
 
@@ -9,6 +9,15 @@ class SequencingMethod:
     @classmethod
     def FIFO(cls, jobs, *args, **kwargs):
         return 0
+
+    @classmethod
+    def DRL(cls, jobs, agent=None, *args, **kwargs):
+        # agent must be passed from Machine
+        if agent is None:
+            return 0  # fallback to FIFO
+        state = agent.build_state(jobs)
+        action = agent.choose_action(state)
+        return action
 
     @classmethod
     def LIFO(cls, jobs, *args, **kwargs):
@@ -38,9 +47,9 @@ class SequencingMethod:
 
     @classmethod
     # place holder, will use the function after creating a DRL scheduler
-    def DRL_scheduler(cls, jobs, *args, **kwargs): 
-        return
-
+    #def DRL_scheduler(cls, jobs, *args, **kwargs):
+    DRL_scheduler = DRL 
+        #return
 
 if __name__ == '__main__':
     print(inspect.getmembers(SequencingMethod, predicate=inspect.ismethod))

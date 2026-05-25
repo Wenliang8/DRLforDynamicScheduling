@@ -63,6 +63,18 @@ class Narrator:
         1.2 Machine initialization: knowing each other and specify the sequencing rule
         '''
         self.opt_mode = False
+        # -----------------------------
+        # DRL Agent Initialization
+        # -----------------------------
+        if self.sqc_method == SequencingMethod.DRL:
+            # state_dim = number of features per job * max queue length
+            # simplest: remaining_pt, due, queue_len → 3 features
+            state_dim = self.m_no * 3
+            action_dim = self.m_no  # choose which job in queue
+            self.drl_agent = DRLAgent(state_dim, action_dim)
+        else:
+            self.drl_agent = None
+
         if 'sqc_method' in kwargs:
             if kwargs['sqc_method'] == 'complete_schedule': # follow a complete schedule
                 pass
@@ -89,9 +101,23 @@ class Narrator:
             self.logger.info("Machine breakdown mode is ON, MTBF: [{}], MTTR: [{}]".format(self.MTBF, self.MTTR))
         else:
             self.logger.debug(f"Machine breakdown is disabled.")
+        
+        from src.scheduler.agv_scheduler import AGVScheduler, TransportManager
+        self.agv_scheduler = AGVScheduler()
+        self.transport_manager = TransportManager(self.agv_scheduler, self.m_list)
+        
         # Machine instances initialization, populate the complete machine list and sequencing strategy
         for m in self.m_list:
-            m.initialization(machine_list = self.m_list, sqc_method = job_sequencing_func)
+            m.transport_manager = self.transport_manager
+            #m.initialization(machine_list = self.m_list, sqc_method = job_sequencing_func)
+        for m in self.m_list:
+            m.transport_manager = self.transport_manager
+            m.initialization(
+                machine_list=self.m_list,
+                sqc_method=job_sequencing_func,
+                drl_agent=self.drl_agent
+            )
+
         '''
         3. Optional event II: processing time variablity
         '''

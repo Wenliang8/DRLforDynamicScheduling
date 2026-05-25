@@ -94,18 +94,34 @@ class Machine:
                 _decision_type = 'Scheduled'
             # TYPE II: if sequencing strategy is reactive
             # and we have more than one queuing jobs, sequencing is required
-            elif len(self.queue) > 1:
+            #elif len(self.queue) > 1:
                 # the returned value is picked job's position in machine's queue
-                self.sqc_decision_pos = self.job_sequencing(jobs = self.queue)
+                #self.sqc_decision_pos = self.job_sequencing(jobs = self.queue)
+                #self.picked_j_instance = self.queue[self.sqc_decision_pos]
+                #self.recorder.sqc_cnt_reactive += 1
+                #_decision_type = 'Reactive'
+            # otherwise simply select the first(only) one
+            #else:
+                #self.sqc_decision_pos = 0
+                #self.picked_j_instance = self.queue[self.sqc_decision_pos]
+                #self.recorder.sqc_cnt_passive += 1
+                #_decision_type = 'Passive'
+            elif len(self.queue) > 1:
+
+                # DRL scheduling
+                if self.job_sequencing.__name__ == "DRL":
+                    self.sqc_decision_pos = self.job_sequencing(
+                        jobs=self.queue,
+                        agent=self.drl_agent
+                    )
+                else:
+                    # normal sequencing rule
+                    self.sqc_decision_pos = self.job_sequencing(jobs=self.queue)
+
                 self.picked_j_instance = self.queue[self.sqc_decision_pos]
                 self.recorder.sqc_cnt_reactive += 1
                 _decision_type = 'Reactive'
-            # otherwise simply select the first(only) one
-            else:
-                self.sqc_decision_pos = 0
-                self.picked_j_instance = self.queue[self.sqc_decision_pos]
-                self.recorder.sqc_cnt_passive += 1
-                _decision_type = 'Passive'
+
             """
             PART II. after the decision, update information and perform the operation
             """
@@ -222,9 +238,12 @@ class Machine:
         self.current_job = None
         next_machine = leaving_job.after_operation()
         if next_machine > -1: # if returned index is valid
-            self.m_list[next_machine].job_arrival(leaving_job)
-
-
+            #self.m_list[next_machine].job_arrival(leaving_job)
+            self.transport_manager.request_transport(
+                job=leaving_job,
+                current_machine=self.m_idx,
+                next_machine=next_machine
+            )
     def __del__(self):
         # append the operation histroy to the recorder
         self.recorder.m_cum_runtime_dict[self.m_idx] = self.cumulative_runtime
