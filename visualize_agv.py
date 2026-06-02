@@ -84,14 +84,23 @@ for t in range(MAX_STEPS):
 
     # Step the SimPy environment (this moves machines, jobs, AND AGVs)
     env.step()
+    
+    # CLEAR previous AGV drawings
+    for p in points:
+        p.set_data([], [])
 
     # Update AGV visuals
     for i in range(agv_sched.env.num_agvs):
         x, y = agv_sched.env.positions[i]
-        paths[i].append((x, y))
-        xs, ys = zip(*paths[i])
-        points[i].set_data(xs, ys)
+        # Show only the current AGV position
+        points[i].set_data([x], [y])
         labels[i].set_position((x + 0.2, y + 0.2))
+
+        
+        #paths[i].append((x, y))
+        #xs, ys = zip(*paths[i])
+        #points[i].set_data(xs, ys)
+        #labels[i].set_position((x + 0.2, y + 0.2))
 
     plt.pause(0.1)
 

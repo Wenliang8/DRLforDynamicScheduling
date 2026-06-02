@@ -1,7 +1,7 @@
 # standard imports
 import collections
-import gurobipy as gp
-from gurobipy import GRB
+#import gurobipy as gp
+#from gurobipy import GRB
 import itertools
 import json
 import logging

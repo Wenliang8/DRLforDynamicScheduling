@@ -48,7 +48,8 @@ class SequencingMethod:
     @classmethod
     # place holder, will use the function after creating a DRL scheduler
     #def DRL_scheduler(cls, jobs, *args, **kwargs):
-    DRL_scheduler = DRL 
+    def DRL_scheduler(cls, jobs, agent=None, *args, **kwargs):
+        return cls.DRL(jobs, agent=agent, *args, **kwargs)
         #return
 
 if __name__ == '__main__':

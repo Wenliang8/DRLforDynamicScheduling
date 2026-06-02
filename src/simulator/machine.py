@@ -121,6 +121,13 @@ class Machine:
                 self.picked_j_instance = self.queue[self.sqc_decision_pos]
                 self.recorder.sqc_cnt_reactive += 1
                 _decision_type = 'Reactive'
+            else:
+                    # PASSIVE MODE: only one job in queue
+
+                    self.sqc_decision_pos = 0
+                    self.picked_j_instance = self.queue[self.sqc_decision_pos]
+                    self.recorder.sqc_cnt_passive += 1
+                    _decision_type = 'Passive'
 
             """
             PART II. after the decision, update information and perform the operation
