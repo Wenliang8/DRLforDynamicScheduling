@@ -102,14 +102,33 @@ class Narrator:
         else:
             self.logger.debug(f"Machine breakdown is disabled.")
         
-        from src.scheduler.agv_scheduler import AGVScheduler, TransportManager
-        self.agv_scheduler = AGVScheduler()
-        self.transport_manager = TransportManager(self.agv_scheduler, self.m_list)
-        
-        # Machine instances initialization, populate the complete machine list and sequencing strategy
-        for m in self.m_list:
-            m.transport_manager = self.transport_manager
-            #m.initialization(machine_list = self.m_list, sqc_method = job_sequencing_func)
+        # -----------------------------
+        # AGVEnv + DQN Initialization
+        # -----------------------------
+        from src.drl.dqn_agent import DQNAgent
+        from src.drl.action_decoder import decode_action
+        from src.simulator.agv_env import AGVEnv
+        from src.simulator.transport_manager import TransportManager
+
+        # At initialization, NO JOBS EXIST YET → pass empty list
+        self.agv_env = AGVEnv(num_agvs=2)
+
+        # Temporary DQN dimensions (will update later when jobs arrive)
+        state_dim = len(self.agv_env.get_state())
+        action_dim = self.agv_env.num_agvs + 1   # AGV0, AGV1, WAIT  # placeholder
+
+        self.agv_agent = DQNAgent(state_dim, action_dim)
+        self.agv_agent.memory = []   # clear replay buffer to remove old invalid actions
+
+        # Create DQN-based TransportManager
+        self.transport_manager = TransportManager(
+            agv_env=self.agv_env,
+            agent=self.agv_agent,
+            decode_action=decode_action,
+            num_agvs=2
+        )
+
+        # Machine instances initialization
         for m in self.m_list:
             m.transport_manager = self.transport_manager
             m.initialization(
@@ -117,7 +136,6 @@ class Narrator:
                 sqc_method=job_sequencing_func,
                 drl_agent=self.drl_agent
             )
-
         '''
         3. Optional event II: processing time variablity
         '''
@@ -146,8 +164,14 @@ class Narrator:
                 env = self.env, logger = self.logger, recorder = self.recorder, rng = self.rng,
                 j_idx = self.j_idx, trajectory = trajectory_seed.copy(), pt_by_m_idx = ptl.copy(),
                 pt_range = self.pt_range, pt_cv = self.pt_cv, due_tightness = self.due_tightness)
+            # Attach machine list to job so TransportManager can deliver it
+            job_instance.machine_list = self.m_list
+
             # track this job
             self.recorder.in_system_jobs[self.j_idx] = job_instance
+            # Update AGVEnv job list
+            self.agv_env.jobs = list(self.recorder.in_system_jobs.values())
+
             # force rendering the event
             yield self.env.timeout(0)
             # build a new schedule if optimization mode is on

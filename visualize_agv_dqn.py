@@ -20,8 +20,7 @@ config = {
     "E_utliz": 0.85,
     "span": 200,
 
-    "sqc_method": SequencingMethod.FIFO,
-
+    "sqc_method": SequencingMethod.FIFO,   # FIFO is fine for DQN testing
     "machine_breakdown": False,
     "random_MTBF": False,
     "random_MTTR": False,
@@ -41,12 +40,8 @@ shop = Shopfloor(**config)
 env = shop.env
 machines = shop.m_list
 
-# Narrator already created:
-#   - AGVScheduler
-#   - TransportManager
-#   - machine.transport_manager = tm
-tm = shop.narrator.transport_manager
-agv_sched = shop.narrator.agv_scheduler
+# AGVEnv is inside narrator
+agv_env = shop.narrator.agv_env
 
 
 # -----------------------------
@@ -70,10 +65,9 @@ for i, (mx, my) in enumerate(machine_positions):
 
 # AGV visuals
 colors = ["red", "blue", "green"]
-points = [ax.plot([], [], "o", color=colors[i])[0] for i in range(agv_sched.env.num_agvs)]
-labels = [ax.text(0, 0, f"AGV{i}", color=colors[i]) for i in range(agv_sched.env.num_agvs)]
-paths = [[] for _ in range(agv_sched.env.num_agvs)]
-
+points = [ax.plot([], [], "o", color=colors[i])[0] for i in range(agv_env.num_agvs)]
+labels = [ax.text(0, 0, f"AGV{i}", color=colors[i]) for i in range(agv_env.num_agvs)]
+paths = [[] for _ in range(agv_env.num_agvs)]
 
 # -----------------------------
 # 4. Run simulation + animate
@@ -90,17 +84,11 @@ for t in range(MAX_STEPS):
         p.set_data([], [])
 
     # Update AGV visuals
-    for i in range(agv_sched.env.num_agvs):
-        x, y = agv_sched.env.positions[i]
-        # Show only the current AGV position
+    for i in range(agv_env.num_agvs):
+        x, y = agv_env.positions[i]
+
         points[i].set_data([x], [y])
         labels[i].set_position((x + 0.2, y + 0.2))
-
-        
-        #paths[i].append((x, y))
-        #xs, ys = zip(*paths[i])
-        #points[i].set_data(xs, ys)
-        #labels[i].set_position((x + 0.2, y + 0.2))
 
     plt.pause(0.1)
 
