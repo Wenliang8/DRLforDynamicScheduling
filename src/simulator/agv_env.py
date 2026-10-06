@@ -117,6 +117,49 @@ class AGVEnv:
     
         # Return path length / travel time to caller so discrete-event simulation delays arrival
         return len(total_path)
+    def assign_transport(self, agv_id, job, pickup, dropoff):
+        self.carrying_job[agv_id] = job
+        self.busy[agv_id] = 1
+
+        px, py = self.machine_positions[pickup]
+        dx, dy = self.machine_positions[dropoff]
+
+        job.pickup = (px, py)
+        job.dropoff = (dx, dy)
+
+        start = tuple(self.positions[agv_id])
+
+        # 1. Path from AGV current position to pickup machine
+        path_to_pickup = self.router.search(start, job.pickup)
+        # 2. Path from pickup machine to dropoff machine
+        path_to_dropoff = self.router.search(job.pickup, job.dropoff)
+
+        total_path = []
+    
+        # Add pickup steps (excluding starting position)
+        if path_to_pickup and len(path_to_pickup) > 1:
+            total_path.extend(path_to_pickup[1:])
+        
+        # Add dropoff steps (excluding starting pickup location)
+        if path_to_dropoff and len(path_to_dropoff) > 1:
+            total_path.extend(path_to_dropoff[1:])
+
+        if not total_path:
+            # AGV is already at target dropoff or no route exists
+            self.busy[agv_id] = 0
+            self.carrying_job[agv_id] = None
+            self.state[agv_id] = "idle"
+            self.paths[agv_id] = None
+            return 0  # 0 travel steps
+
+        self.paths[agv_id] = total_path
+    
+        # Set initial transport state
+        if path_to_pickup and len(path_to_pickup) > 1:
+            self.state[agv_id] = "moving_to_pickup"
+        else:
+            self.state[agv_id] = "moving_to_dropoff"
+        return len(total_path)
 
     # -----------------------------
     # Step function
