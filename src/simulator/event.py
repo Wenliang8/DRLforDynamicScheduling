@@ -63,35 +63,37 @@ class Narrator:
         1.2 Machine initialization: knowing each other and specify the sequencing rule
         '''
         self.opt_mode = False
-        # -----------------------------
-        # DRL Agent Initialization
-        # -----------------------------
+        
+        # Step A: Resolve the sequencing method from kwargs first
+        if 'sqc_method' in kwargs:
+            self.sqc_method = kwargs['sqc_method']
+        else:
+            self.sqc_method = SequencingMethod.FIFO
+
+        # Step B: Determine the sequencing function / scheduler
+        if self.sqc_method == 'complete_schedule':
+            job_sequencing_func = None
+        elif self.sqc_method in (SequencingMethod.GurobiOptimizer, SequencingMethod.ORTools):
+            self.central_scheduler = CentralScheduler(**self.kwargs)
+            self.opt_mode = True
+            job_sequencing_func = self.central_scheduler.draw_from_schedule
+            self.logger.info(f"Optimization mode is ON, A [centralized {self.sqc_method} scheduler] is created, all machines use a central schedule")
+        else:
+            job_sequencing_func = self.sqc_method
+            rule_name = getattr(job_sequencing_func, '__name__', str(self.sqc_method))
+            self.logger.info(f"Machine use [{rule_name}] sequencing rule")
+
+        # Step C: Initialize DRL Agent if needed
         if self.sqc_method == SequencingMethod.DRL:
-            # state_dim = number of features per job * max queue length
-            # simplest: remaining_pt, due, queue_len → 3 features
-            state_dim = self.m_no * 3
-            action_dim = self.m_no  # choose which job in queue
-            self.drl_agent = DRLAgent(state_dim, action_dim)
+            try:
+                from src.scheduler.drl_agent import DRLAgent
+                state_dim = self.m_no * 3
+                action_dim = self.m_no
+                self.drl_agent = DRLAgent(state_dim, action_dim)
+            except ImportError:
+                self.drl_agent = None
         else:
             self.drl_agent = None
-
-        if 'sqc_method' in kwargs:
-            if kwargs['sqc_method'] == 'complete_schedule': # follow a complete schedule
-                pass
-                #self.job_sequencing_func = complete_schedule.who_is_next()
-            # or using mathematical optimization to produce dynamic schedule
-            elif (kwargs['sqc_method'] == SequencingMethod.GurobiOptimizer) or (kwargs['sqc_method'] == SequencingMethod.ORTools): 
-                self.central_scheduler = CentralScheduler(**self.kwargs)
-                self.opt_mode = True
-                job_sequencing_func = self.central_scheduler.draw_from_schedule
-                self.logger.info(f"Optimization mode is ON, A [centralized {self.sqc_method} scheduler] is created, all machines use a central schedule")
-            else: # otherwise a valid sequencing rule must be specified
-                job_sequencing_func = kwargs['sqc_method']
-                self.logger.info(f"Machine use [{job_sequencing_func.__name__}] sequencing rule")
-        else:
-            # if no argument is given, default sequencing rule is FIFO
-            self.logger.info(f"* Machine {self.m_idx} uses default FIFO rule for job sequencing")
-            job_sequencing_func = SequencingMethod.FIFO
         '''
         2. Optional event I: machine breakdown
         '''

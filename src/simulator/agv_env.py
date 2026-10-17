@@ -6,6 +6,9 @@ class AGVEnv:
         self.num_agvs = num_agvs
         self.layout_size = layout_size
         self.max_time = max_time
+        self.total_travel_steps = 0
+        self.wait_steps = 0
+        self.agv_busy_ticks = np.zeros(self.num_agvs)
 
         # A* router
         self.router = AStar(layout_size)
@@ -59,64 +62,6 @@ class AGVEnv:
     # -----------------------------
     # Assign transport for one AGV + one job
     # -----------------------------
-    def assign_transport(self, agv_id, job, pickup, dropoff):
-        self.carrying_job[agv_id] = job
-        self.busy[agv_id] = 1
-
-        px, py = self.machine_positions[pickup]
-        dx, dy = self.machine_positions[dropoff]
-
-        job.pickup = (px, py)
-        job.dropoff = (dx, dy)
-
-        start = tuple(self.positions[agv_id])
-        path_to_pickup = self.router.search(start, job.pickup)
-
-        if not path_to_pickup or len(path_to_pickup) < 2:
-            # no path → leave AGV idle
-            self.busy[agv_id] = 0
-            self.carrying_job[agv_id] = None
-            self.state[agv_id] = "idle"
-            self.paths[agv_id] = None
-        else:
-            self.paths[agv_id] = path_to_pickup[1:]  # skip current
-            self.state[agv_id] = "moving_to_pickup"
-            # In agv_env.py
-    def assign_transport(self, agv_id, job, pickup, dropoff):
-        self.carrying_job[agv_id] = job
-        self.busy[agv_id] = 1
-
-        px, py = self.machine_positions[pickup]
-        dx, dy = self.machine_positions[dropoff]
-
-        job.pickup = (px, py)
-        job.dropoff = (dx, dy)
-
-        start = tuple(self.positions[agv_id])
-    
-        # Path to pickup
-        path_to_pickup = self.router.search(start, job.pickup)
-        # Path from pickup to dropoff
-        path_to_dropoff = self.router.search(job.pickup, job.dropoff)
-
-        total_path = []
-        if path_to_pickup and len(path_to_pickup) > 1:
-            total_path.extend(path_to_pickup[1:])
-        if path_to_dropoff and len(path_to_dropoff) > 1:
-            total_path.extend(path_to_dropoff[1:])
-
-        if not total_path:
-            self.busy[agv_id] = 0
-            self.carrying_job[agv_id] = None
-            self.state[agv_id] = "idle"
-            self.paths[agv_id] = None
-            return 0  # 0 travel steps
-
-        self.paths[agv_id] = total_path
-        self.state[agv_id] = "moving_to_pickup"
-    
-        # Return path length / travel time to caller so discrete-event simulation delays arrival
-        return len(total_path)
     def assign_transport(self, agv_id, job, pickup, dropoff):
         self.carrying_job[agv_id] = job
         self.busy[agv_id] = 1
@@ -195,30 +140,43 @@ class AGVEnv:
         job = self.carrying_job[agv_id]
 
         if self.paths[agv_id] and len(self.paths[agv_id]) > 0:
+            next_step = self.paths[agv_id][0]
+
+            # Check if another busy AGV is occupying the target cell (Section 3.4.3)
+            other_positions = [
+                tuple(self.positions[i]) for i in range(self.num_agvs)
+                if i != agv_id and self.busy[i] == 1
+            ]
+            
+            # Wait at most 1 tick per conflict to avoid infinite head-on gridlock
+            if not hasattr(self, 'just_waited'):
+                self.just_waited = np.zeros(self.num_agvs, dtype=bool)
+
+            if tuple(next_step) in other_positions and not self.just_waited[agv_id]:
+                self.wait_steps += 1
+                self.agv_busy_ticks[agv_id] += 1
+                self.just_waited[agv_id] = True
+                reward -= 0.5  # Congestion/waiting penalty
+                return reward
+
+            # Clear wait flag and move forward
+            self.just_waited[agv_id] = False
             next_step = self.paths[agv_id].pop(0)
             self.positions[agv_id] = np.array(next_step)
-            reward -= 0.1  # small travel penalty
+            self.total_travel_steps += 1
+            self.agv_busy_ticks[agv_id] += 1
+            reward -= 0.1  # Travel step penalty
 
-            # Check pickup
-            if self.state[agv_id] == "moving_to_pickup":
-                if tuple(self.positions[agv_id]) == job.pickup:
-                    path_to_dropoff = self.router.search(job.pickup, job.dropoff)
-                    if path_to_dropoff and len(path_to_dropoff) > 1:
-                        self.paths[agv_id] = path_to_dropoff[1:]
-                        self.state[agv_id] = "moving_to_dropoff"
-                    else:
-                        reward -= 5
-
-            # Check dropoff
-            elif self.state[agv_id] == "moving_to_dropoff":
-                if tuple(self.positions[agv_id]) == job.dropoff:
+            if job is not None:
+                if self.state[agv_id] == "moving_to_pickup" and tuple(self.positions[agv_id]) == job.pickup:
+                    self.state[agv_id] = "moving_to_dropoff"
+                elif self.state[agv_id] == "moving_to_dropoff" and tuple(self.positions[agv_id]) == job.dropoff:
                     self.busy[agv_id] = 0
                     self.state[agv_id] = "idle"
                     self.carrying_job[agv_id] = None
                     self.paths[agv_id] = None
-                    reward += 10  # success
+                    reward += 10.0
         else:
-            # no path left → idle
             self.busy[agv_id] = 0
             self.state[agv_id] = "idle"
             self.paths[agv_id] = None

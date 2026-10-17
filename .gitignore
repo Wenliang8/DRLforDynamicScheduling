@@ -40,4 +40,6 @@ modules*
 *.ipynb_checkpoints*
 *.DS_Store*
 *.secret
-*tests/assets*
+*tests/assets*__pycache__/
+*.pyc
+.DS_Store

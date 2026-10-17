@@ -24,8 +24,8 @@ class Simulator:
         # create the shopfloor instance
         spf = Shopfloor(**kwargs)
         # run the simulation
-        spf.run_simulation()
-
+        # spf.run_simulation()
+        spf.env.run(until=spf.narrator.span)
 
 class SimulatorMultiThread:
     def __init__(self, **kwargs) -> None:

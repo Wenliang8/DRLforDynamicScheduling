@@ -246,10 +246,13 @@ class Machine:
         next_machine = leaving_job.after_operation()
         if next_machine > -1: # if returned index is valid
             #self.m_list[next_machine].job_arrival(leaving_job)
-            self.transport_manager.request_transport(
-                job=leaving_job,
-                current_machine=self.m_idx,
-                next_machine=next_machine
+            self.env.process(
+                self.transport_manager.request_transport(
+                    job=leaving_job,
+                    current_machine=self.m_idx,
+                    next_machine=next_machine,
+                    env=self.env
+                )
             )
     def __del__(self):
         # append the operation histroy to the recorder
