@@ -18,8 +18,8 @@ sim_module.setup_logger = dummy_setup_logger
 from src.simulator.simulator import Shopfloor
 from src.scheduler.sequencing_rule import SequencingMethod
 
-seeds = [42, 100, 2024]
-loads = [0.75, 0.90]
+seeds = [42, 100, 2024, 7, 13, 21, 55, 88, 99, 123, 256, 314, 500, 777, 888, 999, 1024, 1337, 2025, 4096]
+loads = [0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00]
 modes = ["random", "nearest", "dqn"]
 
 results = []  # <--- MUST BE OUTSIDE ALL LOOPS
